@@ -1,0 +1,116 @@
+/*###################기본 권한 부여###################*/
+grant DROP TABLESPACE to OWN;
+grant INSERT ANY TABLE to OWN;
+grant SELECT ANY DICTIONARY to OWN;
+grant CREATE TRIGGER to OWN;
+grant CREATE TABLESPACE to OWN;
+grant CREATE ANY PROCEDURE to OWN;
+grant MANAGE TABLESPACE to OWN;
+grant CREATE ANY TABLE to OWN;
+grant ALTER TABLESPACE to OWN;
+grant CREATE ANY JOB to OWN;
+grant CREATE ANY TRIGGER to OWN;
+grant CREATE PUBLIC SYNONYM to OWN;
+
+
+/*###################테이블스페이스 생성###################*/
+create tablespace TS_test_D datafile 'C:\ORACLE\ORADATA\ORCL\ts_test_d_01.dbf' size 1M;
+alter DATABASE datafile  'C:\ORACLE\ORADATA\ORCL\ts_test_d_01.dbf' AUTOEXTEND ON next 1M MAXSIZE 20M;
+
+/*###################이력테이블 생성###################*/
+create table TS_ADD_HISTORY 
+(SYS_DATE DATE
+,TABLESPACE_NAME varchar2(100)
+,FILE_NAME varchar2(300)
+,RESULT varchar2(500))
+;
+
+/*###################PROCEDURE 생성###################*/
+
+create or replace procedure sp_ts_add
+as
+    TS_NAME varchar2(100);
+    TS_FILE_CNT NUMBER;
+    PATH_NM varchar2(300);
+    STR_NM  varchar2(100);
+    ERR_CD VARCHAR2(100);
+    resumable_cnt number;
+
+begin 
+    /* resumable 조회 */
+    select count(*) into resumable_cnt from dba_resumable where ERROR_PARAMETER3 = '128' ;    
+    
+    if resumable_cnt <1 then 
+    dbms_output.put_line('NO RESUMEABLE' );
+    return;
+    end if;
+        
+    select ERROR_PARAMETER4 into TS_NAME from dba_resumable where ERROR_PARAMETER3 = '128' ;    
+
+    /* TS 확장불가한 DATAFILE 수 조회 */
+    select count(*) into TS_FILE_CNT  from dba_data_files where tablespace_name = TS_NAME;
+
+    /* TS 확장불가한 DATAFILE 형식 조회 */
+    select PATH_NM, SUBSTR(SUBSTR_NM, 1, INSTR(SUBSTR_NM, '_', -1 )-1) STR_NM
+    into PATH_NM , STR_NM
+    from 
+    (select substr(FILE_NAME ,1, instr(FILE_NAME,  '\', -1,1 )) PATH_NM
+            ,substr(FILE_NAME ,instr(FILE_NAME,  '\', -1,1 ) +1 , instr(FILE_NAME ,'.') - instr(FILE_NAME,  '\', -1,1 )-1) SUBSTR_NM
+    from dba_data_files where tablespace_name = TS_NAME and rownum = 1);
+    
+    /* DATAFILE 추가 */
+    execute immediate 'alter tablespace ' || TS_NAME || ' add datafile ''' || path_nm || STR_NM || '_'|| LPAD(TS_FILE_CNT+1,2,'0') || '.dbf'' size 10m';
+    
+    
+    /* DATAFILE 추가 내용 기록 */
+    INSERT INTO TS_ADD_HISTORY VALUES(SYSDATE, TS_NAME, path_nm || STR_NM || '_' || LPAD(TS_FILE_CNT+1,2,'0') || '.dbf', 'SUCC');
+    COMMIT;
+    
+EXCEPTION 
+    WHEN OTHERS THEN 
+    ERR_CD := TO_CHAR(SQLCODE);
+    
+    /* DATAFILE 추가 오류 기록 */
+    INSERT INTO TS_ADD_HISTORY VALUES(SYSDATE, TS_NAME, path_nm || STR_NM || LPAD(TS_FILE_CNT+1,2,'0') || '.dbf',ERR_CD);
+    COMMIT;    
+end;
+/
+
+
+/*###################스케줄러 job 생성###################*/
+
+BEGIN
+    DBMS_SCHEDULER.CREATE_JOB (
+        JOB_NAME => 'SJ_TS_ADD'
+        , START_DATE => SYSDATE
+        , REPEAT_INTERVAL => 'FREQ=SECONDLY;INTERVAL=30'
+        , END_DATE => NULL
+        , JOB_TYPE => 'STORED_PROCEDURE'
+        , JOB_ACTION => 'SP_TS_ADD'
+        , COMMENTS => 'DATAFILE 자동추가 JOB'
+    );
+    DBMS_SCHEDULER.ENABLE('SJ_TS_ADD');
+END;
+/
+/*###################스케줄러 잡 삭제 시###################*/
+BEGIN DBMS_SCHEDULER.DROP_JOB ( JOB_NAME => 'SJ_TS_ADD');  END;
+
+
+
+/*###################JOB 정상동작 확인###################*/
+
+--DATAFILE 찰때까지 반복
+create table test_tbl( id number , NAME varchar2(100)) tablespace TS_TEST_D;
+insert into test_tbl select level as num, 'B' || level as NAME from dual connect by level <=600000;
+commit;
+
+--정상추가 확인
+select * from dba_resumable;
+select file_name, bytes/1024/1024 from DBA_DATA_FILES where tablespace_name = 'TS_TEST_D';
+SELECT * FROM OWN.TS_ADD_HISTORY;
+select * from dba_scheduler_job_run_details where owner = 'OWN';
+
+--수동 작업 시
+set SERVEROUTPUT on;
+exec SP_TS_ADD();
+select * from ts_add_history;
