@@ -1,5 +1,4 @@
 /* ORACLE */
-/* 기존에 사용하던 것과 유사한 쿼리로 가져옴.. */
 SELECT 
 /*+ no_merge(v) ordered */
 	decode(v.hold_sid, null , ' ' , '(' || v.inst_id || ') ' || v.hold_sid)    "HOLD SID"
