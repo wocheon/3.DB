@@ -4,7 +4,7 @@ set serveroutput on;
 
 declare 
     --id varchar2(10) := 'id';
-    id nubmer := 2;
+    id nubmer := 2; -- 해당변수의 기본값을 설정
     over_count EXCEPTION;  
 begin
     if id >3 then 
@@ -92,6 +92,7 @@ begin
     exit when select_sql%NOTFOUND;
     execute immediate 'select id from ' || table_nm into res; -- 결과는 1개 행만 나와야함    
     END LOOP;
+    close select_sql;
 end;
 
 
@@ -116,6 +117,7 @@ begin
         execute immediate 'select id from ' || table_nm into res;
         dbms_output.put_line( res );
     END LOOP;
+    close test_cur;
 end;
 
 
