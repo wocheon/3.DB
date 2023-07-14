@@ -35,26 +35,35 @@ end;
 
 2. 테이블명이 변해야 하는 경우
 
-declare 
-I nubmer;
-res varchar2(10);
-select_sql varchar2(200);
+select id from tbl_1 
+------------------
+ID
+------------------
+a1
+------------------
 
-type cur_type is REF CURSOR; -- 커서 타입 선언
-test_cur cur_type; --커서 변수 선언
+select id from tbl_2
+------------------
+ID
+------------------
+a2
+------------------
+
+set serveroutput on;
+
+declare 
+res varchar2(10);
+table_nm varchar2(10);
+
+cursor select_sql is 
+select 'tbl' || '_' || level from dual connect by level <3;
 
 begin
-
-select_sql := 'select test || level from dual connect by level <10';
-
-
-    FOR I IN 1..9
+   
+    open select_sql;
     LOOP
-    
-    select name into res 
-    from  
-    where id = i; --결과를 변수 res에 입력
-
-    dbms_output.put_line( res );
+    fetch select_sql into table_nm;
+    exit when select_sql%NOTFOUND;
+    execute immediate 'select id from ' || table_nm into res; -- 결과는 1개 행만 나와야함    
     END LOOP;
 end;
