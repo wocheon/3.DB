@@ -1,6 +1,32 @@
 *raise 를 이용하여 원하는상황별로 exception 처리가 가능함.
 
+set serveroutput on;
 
+declare 
+    --id varchar2(10) := 'id';
+    id nubmer := 2;
+    over_count EXCEPTION;  
+begin
+    if id >3 then 
+        raise over_count; -- id 값이 3이상이면 over_count 예외처리 발동
+    end if;
+    
+    DBMS_OUTPUT.put_line(id);
+    
+exception 
+    when over_count then 
+        DBMS_OUTPUT.put_line('ERROR : COUNT OVER');
+    when others then -- 기타 오류 발생시 에러메세지 출력
+      DBMS_OUTPUT.PUT_LINE('오류가 발생했습니다');
+      DBMS_OUTPUT.PUT_LINE('SQL ERROR CODE: ' || SQLCODE);
+      DBMS_OUTPUT.PUT_LINE('SQL ERROR MESSAGE: ' || SQLERRM);  -- 매개변수 없는 SQLERRM
+      DBMS_OUTPUT.PUT_LINE(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+end;
+
+
+
+*serveroutput 출력시 buffer 사이즈 최대로 변경
+dbms_output.enable (buffer_size = null)
 
 *deterministic, enable_parallel
 create or replace function aa ( id in varchar2) return varchar2
