@@ -1,0 +1,60 @@
+*raise 를 이용하여 원하는상황별로 exception 처리가 가능함.
+
+
+
+*deterministic, enable_parallel
+create or replace function aa ( id in varchar2) return varchar2
+deterministic  --subquery 기능을 제공하는 옵션
+enable_parallel --해당옵션이 없으면 parallel로 수행되지않음
+is 
+name varchar2
+begin
+end;
+
+
+*SQL 조회 조건 별 DML 구문 작성법 
+
+1.SQL의 where조건이 변하는경우 > cursor에 입력하여 사용
+
+ex)
+
+declare 
+I nubmer;
+res varchar2(10);
+begin
+    FOR I IN 1..9
+    LOOP
+    
+    select name into res 
+    from employee 
+    where id = i; --결과를 변수 res에 입력
+
+    dbms_output.put_line( res );
+    END LOOP;
+end;
+
+2. 테이블명이 변해야 하는 경우
+
+declare 
+I nubmer;
+res varchar2(10);
+select_sql varchar2(200);
+
+type cur_type is REF CURSOR; -- 커서 타입 선언
+test_cur cur_type; --커서 변수 선언
+
+begin
+
+select_sql := 'select test || level from dual connect by level <10';
+
+
+    FOR I IN 1..9
+    LOOP
+    
+    select name into res 
+    from  
+    where id = i; --결과를 변수 res에 입력
+
+    dbms_output.put_line( res );
+    END LOOP;
+end;
