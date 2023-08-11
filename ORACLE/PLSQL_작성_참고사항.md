@@ -1,5 +1,8 @@
-*raise 를 이용하여 원하는상황별로 exception 처리가 가능함.
+# PLSQL 작성시 참고사항
 
+## 개별 Exception 처리
+* raise 를 이용하여 원하는상황별로 exception 처리가 가능함.
+```sql
 set serveroutput on;
 
 declare 
@@ -22,28 +25,37 @@ exception
       DBMS_OUTPUT.PUT_LINE('SQL ERROR MESSAGE: ' || SQLERRM);  -- 매개변수 없는 SQLERRM
       DBMS_OUTPUT.PUT_LINE(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
 end;
+```
 
 
-
-*serveroutput 출력시 buffer 사이즈 최대로 변경
+## serveroutput 출력시 buffer 사이즈 최대로 변경
+```sql
 dbms_output.enable (buffer_size = null)
+```
 
-*deterministic, enable_parallel
+
+## deterministic, enable_parallel
+
+* deterministic: subquery 기능을 제공하는 옵션
+* enable_parallel : 해당옵션이 없으면 parallel로 수행되지않음
+```sql
 create or replace function aa ( id in varchar2) return varchar2
-deterministic  --subquery 기능을 제공하는 옵션
-enable_parallel --해당옵션이 없으면 parallel로 수행되지않음
+deterministic  
+enable_parallel
 is 
 name varchar2
 begin
 end;
+```
 
+## SQL 조회 조건 별 DML 구문 작성법 
 
-*SQL 조회 조건 별 DML 구문 작성법 
+1. SQL의 where조건이 변하는경우
+    
+    - cursor에 입력하여 사용
 
-1.SQL의 where조건이 변하는경우 > cursor에 입력하여 사용
-
-ex)
-
+>ex)
+```sql
 declare 
 I nubmer;
 res varchar2(10);
@@ -58,23 +70,31 @@ begin
     dbms_output.put_line( res );
     END LOOP;
 end;
+```
 
 2. 테이블명이 변해야 하는 경우
-
+>ex)
+```sql
 select id from tbl_1 
-------------------
+
+-----
 ID
-------------------
+-----
 a1
-------------------
+-----
+```
 
+
+```sql
 select id from tbl_2
-------------------
+-----
 ID
-------------------
+-----
 a2
-------------------
+-----
+```
 
+```sql
 set serveroutput on;
 
 declare 
@@ -94,10 +114,11 @@ begin
     END LOOP;
     close select_sql;
 end;
+```
 
+`OR`
 
-OR
-
+```sql
 declare 
 res varchar2(10);
 select_sql varchar2(500);
@@ -119,5 +140,4 @@ begin
     END LOOP;
     close test_cur;
 end;
-
-
+```
