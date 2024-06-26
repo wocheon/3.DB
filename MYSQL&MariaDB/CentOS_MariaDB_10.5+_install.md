@@ -37,4 +37,16 @@ flush privileges;
 exit;
 ```
 
+```
+# 유저 생성 
+CREATE user '{USER_ID}'@'{HOST}' IDENTIFIED BY '{PASSWORD}';
 
+# SELECT 권한 만을 부여
+GRANT SELECT ON {DATABASE_NAME}.{TABLE_NAME_or_ALL} TO '{USER_ID}'@'{HOST}';
+
+# 모든 권한을 부여 ( Optional )
+GRANT ALL PRIVILEGES ON {DATABASE_NAME}.{TABLE_NAME_or_ALL} TO '{USER_ID}'@'{HOST}';
+
+# 변경된 사항 적용 ( Required )
+FLUSH PRIVILEGES;
+```
